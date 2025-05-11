@@ -1,0 +1,137 @@
+package com.company;
+public class Main {
+public static void main(String[] args) {
+new Student();
+}
+}
+package com.company;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.sql.*;
+import java.util.Vector;
+public class Student {
+private JTextField idData;
+private JTextField nameData;
+private JTable table1;
+private JButton ADDRECORDButton;
+private JButton UPDATERECORDButton;
+private JComboBox classData;
+private JTextField attendData;
+private JComboBox subData;
+private JPanel studentPanel;
+JFrame student = new JFrame();
+public Student() {
+// Setting up the GUI window
+student.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+student.setContentPane(studentPanel);
+student.pack();
+student.setLocationRelativeTo(null);
+student.setSize(600, 500);
+student.setVisible(true);
+// Populate table with data
+tableData();
+ADDRECORDButton.addActionListener(new ActionListener() {
+@Override
+public void actionPerformed(ActionEvent e) {
+// Add new record button clicked
+if (idData.getText().equals("") || nameData.getText().equals("") || attendData.getText().equals("")) {
+JOptionPane.showMessageDialog(null, "Please Fill All Fields to add Record.");
+} else {
+try {
+// Insert new record into the database
+String sql = "INSERT INTO student (ENROLLMENT_NO, NAME, CLASS, SUBJECTS, ATTENDANCE) " +
+"VALUES (?, ?, ?, ?, ?)";
+Class.forName("com.mysql.cj.jdbc.Driver");
+Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/intern", "root", "root");
+PreparedStatement statement = connection.prepareStatement(sql);
+statement.setInt(1, Integer.parseInt(idData.getText()));
+statement.setString(2, nameData.getText());
+statement.setString(3, "" + classData.getSelectedItem());
+statement.setString(4, "" + subData.getSelectedItem());
+statement.setString(5, attendData.getText() + "%");
+statement.executeUpdate();
+JOptionPane.showMessageDialog(null, "ITEM ADDED SUCCESSFULLY");
+idData.setText("");
+nameData.setText("");
+attendData.setText("");
+} catch (Exception ex) {
+JOptionPane.showMessageDialog(null, ex.getMessage());
+}
+// Refresh table data
+tableData();
+}
+}
+});
+UPDATERECORDButton.addActionListener(new ActionListener() {
+@Override
+public void actionPerformed(ActionEvent e) {
+// Update record button clicked
+try {
+// Update the selected record in the database
+String sql = "UPDATE student " +
+"SET NAME = '" + nameData.getText() + "', CLASS = '" + classData.getSelectedItem() +
+"', SUBJECTS = '" + subData.getSelectedItem() + "', ATTENDANCE = '" + attendData.getText() + "'" +
+" WHERE ENROLLMENT_NO = " + Integer.parseInt(idData.getText());
+Class.forName("com.mysql.cj.jdbc.Driver");
+Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/intern", "root", "root");
+PreparedStatement statement = connection.prepareStatement(sql);
+statement.executeUpdate();
+JOptionPane.showMessageDialog(null, "Updated successfully");
+} catch (Exception e2) {
+System.out.println(e2);
+}
+// Refresh table data
+tableData();
+}
+});
+table1.addMouseListener(new MouseAdapter() {
+@Override
+public void mouseClicked(MouseEvent e) {
+// Mouse clicked on table row
+DefaultTableModel dm = (DefaultTableModel) table1.getModel();
+int selectedRow = table1.getSelectedRow();
+idData.setText(dm.getValueAt(selectedRow, 0).toString());
+nameData.setText(dm.getValueAt(selectedRow, 1).toString());
+String[] a = dm.getValueAt(selectedRow, 4).toString().split("%");
+attendData.setText(a[0]);
+}
+});
+}
+public void tableData() {
+try {
+// Retrieve student data from the database
+String a = "SELECT * FROM student";
+Class.forName("com.mysql.cj.jdbc.Driver");
+Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/intern", "root", "root");
+Statement statement = connection.createStatement();
+ResultSet rs = statement.executeQuery(a);
+// Set up the table model with the retrieved data
+table1.setModel(buildTableModel(rs));
+} catch (Exception ex1) {
+JOptionPane.showMessageDialog(null, ex1.getMessage());
+}
+}
+public static DefaultTableModel buildTableModel(ResultSet rs) throws SQLException {
+ResultSetMetaData metaData = rs.getMetaData();
+// Get column names
+Vector<String> columnNames = new Vector<String>();
+int columnCount = metaData.getColumnCount();
+for (int column = 1; column <= columnCount; column++) {
+columnNames.add(metaData.getColumnName(column));
+}
+// Get table data
+Vector<Vector<Object>> data = new Vector<Vector<Object>>();
+while (rs.next()) {
+Vector<Object> vector = new Vector<Object>();
+for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
+vector.add(rs.getObject(columnIndex));
+}
+data.add(vector);
+}
+return new DefaultTableModel(data, columnNames);
+}
+}
